@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA Cipher — Full Parameter Viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #070b14;
+    --panel:   #0d1220;
+    --card:    #131c2e;
+    --border:  #1e2d47;
+    --border2: #263550;
+    --fg:      #cdd9f0;
+    --fg-dim:  #5a7299;
+    --accent:  #4a9eff;
+    --accent2: #ffab45;
+    --green:   #3ddc84;
+    --red:     #ff6b6b;
+    --purple:  #b088ff;
+    --glow:    rgba(74,158,255,0.15);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Grid background ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(74,158,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,158,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* ── Header ── */
+  header {
+    position: relative; z-index: 10;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  header::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: linear-gradient(to bottom, var(--accent), var(--purple));
+  }
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px; font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--fg);
+  }
+  .header-sub {
+    font-size: 11px; color: var(--fg-dim);
+    letter-spacing: 0.5px;
+  }
+  .header-badge {
+    margin-left: auto;
+    background: var(--glow);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  /* ── Layout ── */
+  .app-body {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+    height: calc(100vh - 53px);
+  }
+
+  /* ── Left panel ── */
+  .left-panel {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px 14px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .left-panel::-webkit-scrollbar { width: 4px; }
+  .left-panel::-webkit-scrollbar-track { background: transparent; }
+  .left-panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ── Section label ── */
+  .sec-label {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+  .sec-label.orange { color: var(--accent2); border-color: rgba(255,171,69,0.25); }
+  .sec-label.dim    { color: var(--fg-dim); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+
+  /* ── Radio group ── */
+  .radio-group {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .radio-opt {
+    display: none;
+  }
+  .radio-lbl {
+    flex: 1; min-width: 60px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 8px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--fg-dim);
+    transition: all .15s;
+    user-select: none;
+  }
+  .radio-opt:checked + .radio-lbl {
+    background: rgba(74,158,255,0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .radio-lbl:hover { border-color: var(--border2); color: var(--fg); }
+  .radio-lbl small { display: block; font-size: 9px; color: var(--fg-dim); margin-top: 1px; }
+  .radio-opt:checked + .radio-lbl small { color: var(--accent); opacity: .7; }
+
+  /* ── Mode toggle ── */
+  .mode-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .mode-btn {
+    padding: 7px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--fg-dim);
+    transition: all .15s;
+    user-select: none;
+  }
+  .mode-btn.active {
+    background: rgba(74,158,255,0.12);
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* ── Manual p/q inputs ── */
+  .pq-section {
+    display: none;
+  }
+  .pq-section.visible { display: block; }
+  .input-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .input-lbl {
+    font-size: 12px; font-weight: 700;
+    min-width: 16px;
+  }
+  input[type="text"], input[type="number"], textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--fg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 6px 8px;
+    outline: none;
+    width: 100%;
+    transition: border-color .15s;
+    resize: none;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(74,158,255,0.1);
+  }
+  .input-hint {
+    font-size: 10px; color: var(--fg-dim);
+    margin-top: -4px; margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    width: 100%;
+    padding: 9px 12px;
+    border: none;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 700;
+    cursor: pointer;
+    transition: all .15s;
+    letter-spacing: .5px;
+  }
+  .btn-primary { background: var(--accent); color: var(--bg); }
+  .btn-primary:hover { background: #6ab4ff; }
+  .btn-orange  { background: var(--accent2); color: var(--bg); }
+  .btn-orange:hover { background: #ffbf6b; }
+  .btn-green   { background: var(--green); color: var(--bg); }
+  .btn-green:hover { background: #5eeea0; }
+  .btn-ghost   { background: var(--border); color: var(--fg-dim); }
+  .btn-ghost:hover { background: var(--border2); color: var(--fg); }
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 2px 0;
+  }
+
+  textarea.msg-area {
+    height: 76px;
+    line-height: 1.5;
+  }
+  textarea.cipher-area {
+    height: 58px;
+    line-height: 1.5;
+  }
+
+  /* ── Status bar ── */
+  .status-bar {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: var(--green);
+    line-height: 1.5;
+    min-height: 38px;
+  }
+  .status-bar.error { color: var(--red); }
+  .status-bar.info  { color: var(--fg-dim); }
+
+  /* ── Right panel / Tabs ── */
+  .right-panel {
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .tabs-bar {
+    display: flex;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    padding: 12px 14px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 600;
+    color: var(--fg-dim);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all .15s;
+    letter-spacing: .5px;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--fg); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 18px;
+    display: none;
+  }
+  .tab-content.active { display: block; }
+  .tab-content::-webkit-scrollbar { width: 5px; }
+  .tab-content::-webkit-scrollbar-track { background: transparent; }
+  .tab-content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── Tab 1: Key params ── */
+  .param-grid {
+    display: flex; flex-direction: column; gap: 6px;
+    margin-bottom: 16px;
+  }
+  .param-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 8px;
+    align-items: start;
+  }
+  .param-name {
+    font-size: 11px; font-weight: 700;
+    padding-top: 5px;
+  }
+  .param-val {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 11px;
+    word-break: break-all;
+    line-height: 1.5;
+    min-height: 28px;
+    color: var(--fg-dim);
+  }
+  .param-val.has-value { color: inherit; }
+
+  .log-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 11px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--fg-dim);
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .log-box::-webkit-scrollbar { width: 4px; }
+  .log-box::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  /* ── Tab 2: Results ── */
+  .result-block { margin-bottom: 14px; }
+  .result-lbl {
+    font-size: 10px; letter-spacing: 1.5px; font-weight: 700;
+    color: var(--fg-dim);
+    margin-bottom: 4px;
+  }
+  .result-val {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 12px;
+    word-break: break-all;
+    line-height: 1.6;
+    min-height: 36px;
+    white-space: pre-wrap;
+  }
+  .result-val.cipher { color: var(--accent2); }
+  .result-val.plain  { color: var(--fg); }
+  .result-val.decrypted { color: var(--green); }
+  .copy-row { display: flex; gap: 8px; margin-top: 10px; }
+  .copy-row .btn { width: auto; padding: 7px 14px; font-size: 11px; }
+
+  /* ── Tab 3: Steps table ── */
+  .steps-hint {
+    font-size: 11px; color: var(--fg-dim);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+  .steps-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+  thead th {
+    background: var(--card);
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-size: 10px;
+    padding: 9px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr:nth-child(even) { background: var(--card); }
+  tbody tr:nth-child(odd)  { background: var(--panel); }
+  tbody tr:hover { background: rgba(74,158,255,0.06); }
+  tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tbody td:first-child { color: var(--fg-dim); text-align: center; }
+  tbody td:nth-child(2) { color: var(--accent2); font-weight: 700; text-align: center; }
+  tbody td:nth-child(3) { color: var(--purple); }
+  tbody td:nth-child(4) { color: var(--accent); word-break: break-all; max-width: 200px; }
+  tbody td:last-child   { color: var(--fg-dim); word-break: break-all; }
+  #steps-body tr:hover td { color: var(--fg); }
+
+  /* ── Tab 4: Theory ── */
+  .theory-block { max-width: 700px; }
+  .theory-block h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px; font-weight: 800;
+    color: var(--accent);
+    margin: 24px 0 10px;
+    letter-spacing: .5px;
+  }
+  .theory-block h3 {
+    font-size: 12px; font-weight: 700;
+    color: var(--accent2);
+    margin: 16px 0 6px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .theory-block p, .theory-block li {
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--fg-dim);
+    margin-bottom: 6px;
+  }
+  .theory-block ul { padding-left: 18px; }
+  .theory-block code {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+  }
+  .theory-block .formula {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--purple);
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 12px;
+    color: var(--purple);
+    line-height: 1.8;
+  }
+  .warn-box {
+    background: rgba(255,107,107,0.08);
+    border: 1px solid rgba(255,107,107,0.25);
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--red);
+    line-height: 1.7;
+  }
+
+  /* ── Loading spinner ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  /* ── Highlight colors for param names ── */
+  .c-purple  { color: var(--purple); }
+  .c-accent  { color: var(--accent); }
+  .c-orange  { color: var(--accent2); }
+  .c-green   { color: var(--green); }
+  .c-dim     { color: var(--fg-dim); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .app-body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    .left-panel { border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
+    .param-row { grid-template-columns: 150px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:20px">🔐</span>
+  <div>
+    <div class="header-title">RSA CIPHER — FULL PARAMETER VIEWER</div>
+    <div class="header-sub">Miller-Rabin · Extended Euclidean · Modular Exponentiation</div>
+  </div>
+  <div class="header-badge">RSA FROM SCRATCH</div>
+</header>
+
+<div class="app-body">
+
+  <!-- ═══ LEFT PANEL ═══ -->
+  <div class="left-panel">
+
+    <!-- Key generation mode -->
+    <div>
+      <div class="sec-label">CHẾ ĐỘ SINH KHÓA</div>
+      <div class="mode-toggle">
+        <div class="mode-btn active" id="mode-auto" onclick="setMode('auto')">⚙️ Tự động</div>
+        <div class="mode-btn" id="mode-manual" onclick="setMode('manual')">✏️ Nhập p, q</div>
+      </div>
+
+      <!-- Auto mode options -->
+      <div id="auto-section">
+        <div class="sec-label" style="margin-top:8px">ĐỘ LỚN KHÓA (bits)</div>
+        <div class="card" style="margin-bottom:8px">
+          <div class="radio-group">
+            <input type="radio" name="bits" id="b256" value="256" class="radio-opt">
+            <label for="b256" class="radio-lbl">256<small>demo</small></label>
+            <input type="radio" name="bits" id="b512" value="512" class="radio-opt" checked>
+            <label for="b512" class="radio-lbl">512<small>nhanh</small></label>
+            <input type="radio" name="bits" id="b1024" value="1024" class="radio-opt">
+            <label for="b1024" class="radio-lbl">1024<small>an toàn</small></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual p/q inputs -->
+      <div class="pq-section" id="manual-section">
+        <div class="sec-label" style="margin-top:8px">NHẬP p VÀ q</div>
+        <div class="card" style="margin-bottom:8px">
+          <div class="input-row">
+            <span class="input-lbl c-purple">p</span>
+            <input type="text" id="input-p" placeholder="Nhập số nguyên tố p...">
+          </div>
+          <div class="input-row">
+            <span class="input-lbl c-purple">q</span>
+            <input type="text" id="input-q" placeholder="Nhập số nguyên tố q...">
+          </div>
+          <div class="input-hint">
+            p và q phải là số nguyên tố, p ≠ q.<br>
+            Ví dụ nhỏ: p = 61, q = 53
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+            <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:10px" onclick="fillExample('small')">Ví dụ nhỏ</button>
+            <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:10px" onclick="fillExample('medium')">Ví dụ vừa</button>
+            <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:10px" onclick="fillExample('random')">🎲 Ngẫu nhiên</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- e choice (both modes) -->
+      <div class="sec-label">PUBLIC EXPONENT e</div>
+      <div class="card" style="margin-bottom:8px">
+        <div class="radio-group">
+          <input type="radio" name="eexp" id="e3"    value="3"     class="radio-opt">
+          <label for="e3"    class="radio-lbl">3</label>
+          <input type="radio" name="eexp" id="e17"   value="17"    class="radio-opt">
+          <label for="e17"   class="radio-lbl">17</label>
+          <input type="radio" name="eexp" id="e65537" value="65537" class="radio-opt" checked>
+          <label for="e65537" class="radio-lbl">65537<small>chuẩn</small></label>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="doGenerate()">⚙️ Sinh Cặp Khóa RSA</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Message -->
+    <div>
+      <div class="sec-label orange">BẢN TIN M</div>
+      <div style="font-size:10px;color:var(--fg-dim);margin-bottom:4px">Nhập văn bản (mã từng ký tự)</div>
+      <textarea class="msg-area" id="input-msg" placeholder="Nhập bản tin cần mã hóa..."></textarea>
+    </div>
+
+    <!-- Cipher input -->
+    <div>
+      <div class="sec-label dim">CIPHER INT LIST (để giải mã)</div>
+      <div style="font-size:10px;color:var(--fg-dim);margin-bottom:4px">Dán list số nguyên cách nhau bởi dấu phẩy</div>
+      <textarea class="cipher-area" id="input-cipher" placeholder="12345, 67890, ..."></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-orange" onclick="doEncrypt()">🔒 Mã hóa</button>
+      <button class="btn btn-green"  onclick="doDecrypt()">🔓 Giải mã</button>
+    </div>
+    <button class="btn btn-ghost" onclick="doClear()">🗑 Xóa tất cả</button>
+
+    <div class="status-bar info" id="status-bar">Bắt đầu bằng cách sinh khóa RSA.</div>
+  </div>
+
+  <!-- ═══ RIGHT PANEL ═══ -->
+  <div class="right-panel">
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="switchTab('tab-keys',this)">🔑 Tham Số Khóa</button>
+      <button class="tab-btn" onclick="switchTab('tab-result',this)">📄 Kết Quả</button>
+      <button class="tab-btn" onclick="switchTab('tab-steps',this)">📊 Bước Tính</button>
+      <button class="tab-btn" onclick="switchTab('tab-theory',this)">ℹ️ Lý Thuyết</button>
+    </div>
+
+    <!-- Tab 1: Keys -->
+    <div class="tab-content active" id="tab-keys">
+      <div class="sec-label" style="margin-bottom:10px">THAM SỐ KHÓA RSA</div>
+      <div class="param-grid" id="param-grid">
+        <!-- filled by JS -->
+      </div>
+      <div class="sec-label" style="margin-bottom:6px">LOG SINH KHÓA</div>
+      <div class="log-box" id="log-box">—</div>
+    </div>
+
+    <!-- Tab 2: Result -->
+    <div class="tab-content" id="tab-result">
+      <div class="result-block">
+        <div class="result-lbl">PLAINTEXT</div>
+        <div class="result-val plain" id="res-plain">—</div>
+      </div>
+      <div class="result-block">
+        <div class="result-lbl">CIPHER INT LIST</div>
+        <div class="result-val cipher" id="res-cipher">—</div>
+      </div>
+      <div class="result-block">
+        <div class="result-lbl">DECRYPTED TEXT</div>
+        <div class="result-val decrypted" id="res-dec">—</div>
+      </div>
+      <div class="copy-row">
+        <button class="btn btn-ghost" onclick="copyCipher()">📋 Copy Cipher List</button>
+        <button class="btn btn-ghost" onclick="cipherToInput()">⇅ Cipher → Input</button>
+      </div>
+    </div>
+
+    <!-- Tab 3: Steps -->
+    <div class="tab-content" id="tab-steps">
+      <div class="steps-hint">Mỗi dòng: ký tự → ASCII M → C = M<sup>e</sup> mod n &nbsp;(hoặc M = C<sup>d</sup> mod n)</div>
+      <div class="steps-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Ký tự</th><th>M (int)</th><th>C (int)</th><th>Công thức</th>
+            </tr>
+          </thead>
+          <tbody id="steps-body">
+            <tr><td colspan="5" style="text-align:center;color:var(--fg-dim);padding:20px">Chưa có dữ liệu.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 4: Theory -->
+    <div class="tab-content" id="tab-theory">
+      <div class="theory-block">
+        <h2>RSA — Rivest–Shamir–Adleman</h2>
+        <h3>Nền tảng toán học</h3>
+        <p>Độ an toàn dựa trên bài toán <strong style="color:var(--fg)">phân tích thừa số nguyên tố lớn</strong> (IFP — Integer Factorization Problem): cho <code>n = p×q</code>, không thể tìm lại p, q trong thời gian đa thức.</p>
+
+        <h3>Sinh khóa</h3>
+        <div class="formula">
+1. Chọn p, q nguyên tố lớn, p ≠ q, |p-q| lớn<br>
+2. n = p × q &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(modulus, công khai)<br>
+3. φ(n) = (p-1)(q-1) &nbsp;&nbsp;&nbsp;(Euler's totient, bí mật)<br>
+4. Chọn e: gcd(e, φ) = 1 &nbsp;(thường e = 65537)<br>
+5. d = e⁻¹ mod φ(n) &nbsp;&nbsp;&nbsp;&nbsp;(Extended Euclidean)
+        </div>
+
+        <h3>Mã hóa / Giải mã</h3>
+        <div class="formula" style="border-color:var(--green);color:var(--green)">
+Mã hóa:  C = Mᵉ mod n<br>
+Giải mã: M = Cᵈ mod n
+        </div>
+        <p>Tính đúng dựa trên <strong style="color:var(--fg)">Định lý Euler</strong>:</p>
+        <div class="formula" style="border-color:var(--fg-dim);color:var(--fg-dim)">
+M^(e·d) = M^(1 + k·φ(n)) ≡ M (mod n)
+        </div>
+
+        <h3>Tại sao pow(M, e, n) thay vì (M**e) % n?</h3>
+        <p style="color:var(--fg-dim)">(M**e) % n: Python tính M**e trước → số KHỔNG LỒ, rồi mới mod</p>
+        <p style="color:var(--fg-dim)">pow(M, e, n): dùng Square-and-Multiply modular → O(log e) phép → nhanh hơn hàng tỷ lần, không tràn bộ nhớ.</p>
+
+        <h3>Kiểm tra nguyên tố: Miller-Rabin</h3>
+        <p>Thuật toán xác suất với <code>k = 20</code> vòng lặp. Xác suất lỗi &lt; 4⁻²⁰ ≈ 10⁻¹².</p>
+
+        <h3>Các nguy cơ bảo mật</h3>
+        <div class="warn-box">
+⚠️ p, q nhỏ → brute-force factoring trong ms<br>
+⚠️ p ≈ q → Fermat factorization trong vài bước<br>
+⚠️ M nhỏ, e nhỏ → Cᵉ &lt; n → không cần mod → căn bậc e của C<br>
+⚠️ e=3 không padding → RSA broadcast attack (Håstad)<br>
+✅ Thực tế: RSA + OAEP padding + 2048-bit key tối thiểu
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  BIGINT RSA CORE
+// ═══════════════════════════════════════
+
+function millerRabin(n, k = 20) {
+  if (n < 2n) return false;
+  const small = [2n,3n,5n,7n,11n,13n,17n,19n,23n,29n,31n,37n];
+  if (small.includes(n)) return true;
+  if (n % 2n === 0n) return false;
+  let r = 0n, d = n - 1n;
+  while (d % 2n === 0n) { r++; d /= 2n; }
+  const randBig = (min, max) => {
+    const range = max - min;
+    const bits = range.toString(2).length;
+    let rnd;
+    do {
+      const arr = new Uint8Array(Math.ceil(bits / 8));
+      crypto.getRandomValues(arr);
+      rnd = BigInt('0x' + [...arr].map(b=>b.toString(16).padStart(2,'0')).join(''));
+      rnd = rnd % range;
+    } while (rnd < 0n);
+    return rnd + min;
+  };
+  outer: for (let i = 0; i < k; i++) {
+    const a = randBig(2n, n - 1n);
+    let x = modPow(a, d, n);
+    if (x === 1n || x === n - 1n) continue;
+    for (let j = 0n; j < r - 1n; j++) {
+      x = modPow(x, 2n, n);
+      if (x === n - 1n) continue outer;
+    }
+    return false;
+  }
+  return true;
+}
+
+function modPow(base, exp, mod) {
+  let result = 1n;
+  base = base % mod;
+  while (exp > 0n) {
+    if (exp % 2n === 1n) result = result * base % mod;
+    exp >>= 1n;
+    base = base * base % mod;
+  }
+  return result;
+}
+
+function randBits(bits) {
+  const bytes = Math.ceil(bits / 8);
+  const arr = new Uint8Array(bytes);
+  crypto.getRandomValues(arr);
+  let n = BigInt('0x' + [...arr].map(b=>b.toString(16).padStart(2,'0')).join(''));
+  n |= (1n << BigInt(bits - 1));
+  n |= 1n;
+  return n;
+}
+
+function genPrime(bits) {
+  while (true) {
+    let p = randBits(bits);
+    if (millerRabin(p)) return p;
+  }
+}
+
+function extGcd(a, b) {
+  if (b === 0n) return [a, 1n, 0n];
+  const [g, x, y] = extGcd(b, a % b);
+  return [g, y, x - (a / b) * y];
+}
+
+function modInverse(e, phi) {
+  const [g, x] = extGcd(((e % phi) + phi) % phi, phi);
+  if (g !== 1n) throw new Error(`gcd(e=${e}, φ)=${g} ≠ 1 — chọn e khác!`);
+  return ((x % phi) + phi) % phi;
+}
+
+function gcd(a, b) { while (b) { [a, b] = [b, a % b]; } return a; }
+
+function generateKeys(bits, eChoice) {
+  const half = bits >> 1;
+  const t0 = performance.now();
+  let p = genPrime(half);
+  let q;
+  let tries = 0;
+  while (true) {
+    tries++;
+    q = genPrime(half);
+    const diff = p > q ? p - q : q - p;
+    if (q !== p && diff > (1n << BigInt(half - 2))) break;
+    if (tries > 100) break; // fallback
+  }
+
+  const n = p * q;
+  const phi = (p - 1n) * (q - 1n);
+  let e = BigInt(eChoice);
+  if (gcd(e, phi) !== 1n) {
+    for (const et of [3n, 17n, 257n, 65537n]) {
+      if (gcd(et, phi) === 1n) { e = et; break; }
+    }
+  }
+  const d = modInverse(e, phi);
+  const elapsed = ((performance.now() - t0) / 1000).toFixed(3);
+
+  const steps = [
+    `1. Sinh p (${half}-bit nguyên tố):\n   p = ${p}`,
+    `2. Sinh q (${half}-bit nguyên tố):\n   q = ${q}`,
+    `3. Tính n = p × q:\n   n = ${n}`,
+    `4. Tính φ(n) = (p-1)×(q-1):\n   φ = ${phi}`,
+    `5. Chọn e (public exponent):\n   e = ${e}`,
+    `   Kiểm tra gcd(e, φ) = ${gcd(e, phi)} ✅`,
+    `6. Tính d = e⁻¹ mod φ(n):\n   d = ${d}`,
+    `   Kiểm tra (e×d) mod φ = ${(e * d) % phi} ✅`,
+    `   [Extended Euclidean Algorithm]`,
+    `7. Hoàn thành trong ${elapsed}s`,
+    ``,
+    `Public key:  (e=${e}, n=...)`,
+    `Private key: (d=..., n=...)`,
+  ];
+
+  return { p, q, n, phi, e, d, bits, elapsed, steps };
+}
+
+// validate if a string is a prime using Miller-Rabin
+function validatePrime(str) {
+  str = str.trim().replace(/[\s_]/g, '');
+  if (!/^\d+$/.test(str)) return { ok: false, msg: 'Phải là số nguyên dương.' };
+  const n = BigInt(str);
+  if (n < 2n) return { ok: false, msg: 'Phải ≥ 2.' };
+  if (!millerRabin(n)) return { ok: false, msg: `${n} không phải số nguyên tố!` };
+  return { ok: true, val: n };
+}
+
+function generateKeysManual(pStr, qStr, eChoice) {
+  const vp = validatePrime(pStr);
+  if (!vp.ok) throw new Error('p: ' + vp.msg);
+  const vq = validatePrime(qStr);
+  if (!vq.ok) throw new Error('q: ' + vq.msg);
+
+  const p = vp.val, q = vq.val;
+  if (p === q) throw new Error('p và q phải khác nhau!');
+
+  const n = p * q;
+  const phi = (p - 1n) * (q - 1n);
+  let e = BigInt(eChoice);
+  if (gcd(e, phi) !== 1n) {
+    let found = false;
+    for (const et of [3n, 17n, 257n, 65537n]) {
+      if (gcd(et, phi) === 1n) { e = et; found = true; break; }
+    }
+    if (!found) throw new Error(`Không tìm được e thỏa gcd(e, φ)=1 với p, q này.`);
+  }
+  const d = modInverse(e, phi);
+  const pBits = p.toString(2).length;
+  const qBits = q.toString(2).length;
+
+  const steps = [
+    `[Chế độ nhập thủ công]`,
+    `1. p (${pBits}-bit, đã xác nhận nguyên tố):\n   p = ${p}`,
+    `2. q (${qBits}-bit, đã xác nhận nguyên tố):\n   q = ${q}`,
+    `3. Tính n = p × q:\n   n = ${n}`,
+    `4. Tính φ(n) = (p-1)×(q-1):\n   φ = ${phi}`,
+    `5. Chọn e (public exponent):\n   e = ${e}`,
+    `   Kiểm tra gcd(e, φ) = ${gcd(e, phi)} ✅`,
+    `6. Tính d = e⁻¹ mod φ(n):\n   d = ${d}`,
+    `   Kiểm tra (e×d) mod φ = ${(e * d) % phi} ✅`,
+    `   [Extended Euclidean Algorithm]`,
+    ``,
+    `Public key:  (e=${e}, n=...)`,
+    `Private key: (d=..., n=...)`,
+  ];
+
+  return { p, q, n, phi, e, d, bits: Math.max(pBits, qBits)*2, elapsed: '0.000', steps };
+}
+
+function encryptStr(msg, e, n) {
+  const res = [], steps = [];
+  for (const ch of msg) {
+    const m = BigInt(ch.codePointAt(0));
+    if (m >= n) throw new Error(`Ký tự '${ch}' (ord=${m}) ≥ n. Dùng khóa lớn hơn.`);
+    const c = modPow(m, e, n);
+    res.push(c);
+    steps.push({ ch, m, c, note: `C = ${m}^e mod n = ${c}` });
+  }
+  return { cipherList: res, steps };
+}
+
+function decryptList(cipherList, d, n) {
+  const chars = [], steps = [];
+  for (const c of cipherList) {
+    const m = modPow(c, d, n);
+    let ch;
+    try { ch = String.fromCodePoint(Number(m)); } catch { ch = '?'; }
+    chars.push(ch);
+    steps.push({ ch, m, c, note: `M = ${c}^d mod n = ${m} → '${ch}'` });
+  }
+  return { plain: chars.join(''), steps };
+}
+
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+
+let state = {
+  keys: null,
+  cipherList: [],
+  mode: 'auto', // 'auto' | 'manual'
+};
+
+// ═══════════════════════════════════════
+//  UI
+// ═══════════════════════════════════════
+
+function setStatus(msg, type = 'info') {
+  const el = document.getElementById('status-bar');
+  el.textContent = msg;
+  el.className = `status-bar ${type}`;
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  document.getElementById('mode-auto').classList.toggle('active', mode === 'auto');
+  document.getElementById('mode-manual').classList.toggle('active', mode === 'manual');
+  document.getElementById('auto-section').style.display = mode === 'auto' ? '' : 'none';
+  const ms = document.getElementById('manual-section');
+  ms.style.display = mode === 'manual' ? '' : 'none';
+  ms.classList.toggle('visible', mode === 'manual');
+}
+
+function fillExample(type) {
+  const examples = {
+    small:  { p: '61', q: '53' },
+    medium: { p: '1013', q: '991' },
+  };
+  if (type === 'random') {
+    // generate small random primes
+    setStatus('🎲 Đang tạo p, q ngẫu nhiên...', 'info');
+    setTimeout(() => {
+      try {
+        const p = genPrime(32);
+        const q = genPrime(32);
+        document.getElementById('input-p').value = p.toString();
+        document.getElementById('input-q').value = q.toString();
+        setStatus('✅ Đã tạo p, q ngẫu nhiên 32-bit.', 'info');
+      } catch(e) {
+        setStatus('❌ ' + e.message, 'error');
+      }
+    }, 50);
+    return;
+  }
+  const ex = examples[type];
+  document.getElementById('input-p').value = ex.p;
+  document.getElementById('input-q').value = ex.q;
+}
+
+function renderParams(keys) {
+  const params = [
+    { key: 'p',   label: 'Số nguyên tố p',        cls: 'c-purple' },
+    { key: 'q',   label: 'Số nguyên tố q',        cls: 'c-purple' },
+    { key: 'n',   label: 'Modulus n = p × q',     cls: 'c-accent' },
+    { key: 'phi', label: 'φ(n) = (p-1)(q-1)',     cls: 'c-dim' },
+    { key: 'e',   label: 'Public exponent e',      cls: 'c-orange' },
+    { key: 'd',   label: 'Private exponent d',     cls: 'c-green' },
+  ];
+  const grid = document.getElementById('param-grid');
+  grid.innerHTML = '';
+  for (const p of params) {
+    const val = keys ? keys[p.key].toString() : '—';
+    grid.innerHTML += `
+      <div class="param-row">
+        <div class="param-name ${p.cls}">${p.label}:</div>
+        <div class="param-val ${keys ? 'has-value ' + p.cls : ''}">${val}</div>
+      </div>`;
+  }
+}
+
+function renderSteps(steps, mode) {
+  const tbody = document.getElementById('steps-body');
+  if (!steps || steps.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--fg-dim);padding:20px">Chưa có dữ liệu.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = steps.map((s, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${s.ch === ' ' ? '·' : escHtml(s.ch)}</td>
+      <td>${s.m}</td>
+      <td>${s.c}</td>
+      <td>${escHtml(s.note)}</td>
+    </tr>`).join('');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════
+
+function doGenerate() {
+  const eChoice = parseInt(document.querySelector('input[name="eexp"]:checked').value);
+  setStatus('<span class="spinner"></span> Đang sinh khóa...', 'info');
+  document.getElementById('status-bar').innerHTML =
+    '<span class="spinner"></span> Đang sinh khóa...';
+
+  setTimeout(() => {
+    try {
+      let keys;
+      if (state.mode === 'auto') {
+        const bits = parseInt(document.querySelector('input[name="bits"]:checked').value);
+        keys = generateKeys(bits, eChoice);
+      } else {
+        const pStr = document.getElementById('input-p').value;
+        const qStr = document.getElementById('input-q').value;
+        if (!pStr || !qStr) throw new Error('Vui lòng nhập cả p và q.');
+        keys = generateKeysManual(pStr, qStr, eChoice);
+      }
+      state.keys = keys;
+      renderParams(keys);
+      document.getElementById('log-box').textContent = keys.steps.join('\n');
+      // switch to keys tab
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-keys').classList.add('active');
+      document.querySelector('.tab-btn').classList.add('active');
+      setStatus(`✅ Khóa sinh xong (${keys.elapsed}s) | n=${keys.bits}-bit | e=${keys.e}`, 'info');
+    } catch (err) {
+      setStatus('❌ ' + err.message, 'error');
+    }
+  }, 30);
+}
+
+function requireKeys() {
+  if (!state.keys) {
+    setStatus('⚠️ Vui lòng sinh cặp khóa trước.', 'error');
+    return false;
+  }
+  return true;
+}
+
+function doEncrypt() {
+  if (!requireKeys()) return;
+  const msg = document.getElementById('input-msg').value;
+  if (!msg) { setStatus('⚠️ Nhập bản tin M.', 'error'); return; }
+  try {
+    const { cipherList, steps } = encryptStr(msg, state.keys.e, state.keys.n);
+    state.cipherList = cipherList;
+
+    document.getElementById('res-plain').textContent = msg;
+    document.getElementById('res-cipher').textContent = cipherList.join(', ');
+    document.getElementById('res-dec').textContent = '—';
+
+    renderSteps(steps, 'enc');
+
+    switchTabById('tab-result');
+    setStatus(`✅ Mã hóa ${msg.length} ký tự xong.`, 'info');
+  } catch (e) { setStatus('❌ ' + e.message, 'error'); }
+}
+
+function doDecrypt() {
+  if (!requireKeys()) return;
+  const raw = document.getElementById('input-cipher').value.trim();
+  let cipherList;
+  if (raw) {
+    try {
+      cipherList = raw.split(',').map(s => BigInt(s.trim())).filter(n => !isNaN(Number(n)));
+    } catch { setStatus('❌ Cipher list phải là số nguyên cách nhau bởi dấu phẩy.', 'error'); return; }
+  } else if (state.cipherList.length) {
+    cipherList = state.cipherList;
+  } else {
+    setStatus('⚠️ Nhập cipher list hoặc mã hóa trước.', 'error'); return;
+  }
+  try {
+    const { plain, steps } = decryptList(cipherList, state.keys.d, state.keys.n);
+    document.getElementById('res-cipher').textContent = cipherList.join(', ');
+    document.getElementById('res-dec').textContent = plain;
+    renderSteps(steps, 'dec');
+    switchTabById('tab-result');
+    setStatus(`✅ Giải mã ${cipherList.length} phần tử xong.`, 'info');
+  } catch (e) { setStatus('❌ ' + e.message, 'error'); }
+}
+
+function switchTabById(id) {
+  const tabMap = { 'tab-keys': 0, 'tab-result': 1, 'tab-steps': 2, 'tab-theory': 3 };
+  const btns = document.querySelectorAll('.tab-btn');
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btns.forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btns[tabMap[id]].classList.add('active');
+}
+
+function copyCipher() {
+  const v = document.getElementById('res-cipher').textContent;
+  if (v && v !== '—') {
+    navigator.clipboard.writeText(v).then(() => setStatus('📋 Đã copy cipher list!', 'info'));
+  }
+}
+
+function cipherToInput() {
+  const v = document.getElementById('res-cipher').textContent;
+  if (v && v !== '—') {
+    document.getElementById('input-cipher').value = v;
+    setStatus('⇅ Đã chuyển cipher sang ô input giải mã.', 'info');
+  }
+}
+
+function doClear() {
+  document.getElementById('input-msg').value = '';
+  document.getElementById('input-cipher').value = '';
+  document.getElementById('res-plain').textContent = '—';
+  document.getElementById('res-cipher').textContent = '—';
+  document.getElementById('res-dec').textContent = '—';
+  document.getElementById('steps-body').innerHTML =
+    '<tr><td colspan="5" style="text-align:center;color:var(--fg-dim);padding:20px">Chưa có dữ liệu.</td></tr>';
+  state.cipherList = [];
+  setStatus('Đã xóa.', 'info');
+}
+
+// ── Init ──
+renderParams(null);
+</script>
+</body>
+</html>

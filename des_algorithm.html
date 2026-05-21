@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DES Encryption</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a0e;
+    --panel: #0a1520;
+    --border: #0e3a52;
+    --accent: #00d4ff;
+    --accent2: #00ff9d;
+    --accent3: #ff6b35;
+    --text: #b8d4e0;
+    --text-dim: #3d6070;
+    --glow: 0 0 20px rgba(0,212,255,0.4);
+    --glow2: 0 0 20px rgba(0,255,157,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Scanlines */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .header-line {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin: 12px 0;
+  }
+
+  .title-main {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(22px, 5vw, 42px);
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: var(--glow), 0 0 60px rgba(0,212,255,0.2);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    animation: pulse-title 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-title {
+    0%, 100% { text-shadow: var(--glow), 0 0 60px rgba(0,212,255,0.2); }
+    50% { text-shadow: 0 0 30px rgba(0,212,255,0.8), 0 0 80px rgba(0,212,255,0.4); }
+  }
+
+  .title-sub {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--text-dim);
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--accent2);
+    border: 1px solid rgba(0,255,157,0.3);
+    padding: 3px 12px;
+    margin-top: 10px;
+    text-transform: uppercase;
+  }
+
+  /* PANELS */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    position: relative;
+    margin-bottom: 20px;
+    animation: fadeIn 0.5s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.6;
+  }
+
+  .panel-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .panel-num {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: var(--accent);
+    background: rgba(0,212,255,0.1);
+    border: 1px solid rgba(0,212,255,0.3);
+    padding: 2px 8px;
+    letter-spacing: 2px;
+  }
+
+  .panel-title {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .panel-body {
+    padding: 24px 20px;
+  }
+
+  /* INPUTS */
+  .input-group {
+    margin-bottom: 20px;
+  }
+
+  .input-label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .input-prefix {
+    background: rgba(0,212,255,0.08);
+    border: 1px solid var(--border);
+    border-right: none;
+    padding: 0 14px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    color: var(--accent);
+    white-space: nowrap;
+    letter-spacing: 1px;
+  }
+
+  input[type="text"], input[type="number"] {
+    flex: 1;
+    background: rgba(0,20,35,0.8);
+    border: 1px solid var(--border);
+    color: var(--accent2);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 15px;
+    padding: 0 16px;
+    height: 46px;
+    letter-spacing: 2px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    text-transform: uppercase;
+  }
+
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: var(--glow);
+  }
+
+  .input-hint {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 5px;
+    letter-spacing: 1px;
+  }
+
+  .input-hint.error { color: var(--accent3); }
+  .input-hint.ok { color: var(--accent2); }
+
+  /* ROUNDS ROW */
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: end;
+  }
+
+  input[type="number"] {
+    width: 100px;
+    text-align: center;
+  }
+
+  /* BUTTON */
+  .btn-encrypt {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    padding: 14px 32px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    width: 100%;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .btn-encrypt::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: -1;
+  }
+
+  .btn-encrypt:hover {
+    color: var(--bg);
+    box-shadow: var(--glow);
+  }
+
+  .btn-encrypt:hover::before { transform: translateX(0); }
+
+  .btn-encrypt:active { transform: scale(0.98); }
+
+  .btn-icon {
+    font-size: 14px;
+    animation: spin-icon 4s linear infinite paused;
+  }
+
+  .btn-encrypt:hover .btn-icon { animation-play-state: running; }
+
+  @keyframes spin-icon {
+    to { transform: rotate(360deg); }
+  }
+
+  /* TERMINAL OUTPUT */
+  #output-section {
+    display: none;
+  }
+
+  .terminal {
+    background: #020d14;
+    border: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    padding: 20px;
+    max-height: 460px;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .terminal::-webkit-scrollbar { width: 4px; }
+  .terminal::-webkit-scrollbar-track { background: transparent; }
+  .terminal::-webkit-scrollbar-thumb { background: var(--accent); }
+
+  .t-line {
+    display: block;
+    opacity: 0;
+    transform: translateY(4px);
+    animation: lineIn 0.06s ease forwards;
+  }
+
+  @keyframes lineIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .t-sep    { color: #1a3a4a; }
+  .t-label  { color: var(--text-dim); }
+  .t-key    { color: #ff9e3d; }
+  .t-subkey { color: #ffd166; }
+  .t-round  { color: var(--text); }
+  .t-accent { color: var(--accent); }
+  .t-result { color: var(--accent2); font-size: 14px; font-weight: bold; }
+  .t-head   { color: var(--accent); font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 2px; }
+  .t-error  { color: var(--accent3); }
+
+  /* SUBKEYS TABLE */
+  .subkeys-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .sk-item {
+    background: rgba(0,212,255,0.04);
+    border: 1px solid rgba(0,212,255,0.1);
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  .sk-label {
+    color: var(--text-dim);
+    min-width: 32px;
+  }
+
+  .sk-val { color: #ffd166; letter-spacing: 1px; }
+
+  /* RESULT CARD */
+  .result-card {
+    background: rgba(0,255,157,0.05);
+    border: 1px solid rgba(0,255,157,0.3);
+    padding: 28px;
+    text-align: center;
+    position: relative;
+    margin-top: 20px;
+  }
+
+  .result-card::before, .result-card::after {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    border-color: var(--accent2);
+    border-style: solid;
+  }
+
+  .result-card::before { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
+  .result-card::after  { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
+
+  .result-label {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .result-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(18px, 4vw, 32px);
+    font-weight: 900;
+    color: var(--accent2);
+    letter-spacing: 6px;
+    text-shadow: var(--glow2);
+    word-break: break-all;
+  }
+
+  .result-meta {
+    margin-top: 14px;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+
+  /* STATUS BAR */
+  .statusbar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 28px;
+    background: rgba(5,10,14,0.95);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 24px;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    z-index: 100;
+  }
+
+  .sb-item { display: flex; align-items: center; gap: 6px; }
+  .sb-dot  { width: 5px; height: 5px; border-radius: 50%; background: var(--accent2); animation: blink 2s infinite; }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.2; }
+  }
+
+  /* SECTION DIVIDER */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 28px 0 20px;
+  }
+
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  .divider-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  /* COPY BTN */
+  .btn-copy {
+    background: transparent;
+    border: 1px solid rgba(0,255,157,0.3);
+    color: var(--accent2);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 6px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 14px;
+  }
+
+  .btn-copy:hover {
+    background: rgba(0,255,157,0.1);
+    border-color: var(--accent2);
+  }
+
+  .reset-link {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .reset-link:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <!-- HEADER -->
+  <header>
+    <div class="header-line"></div>
+    <div class="title-main">DES ENCRYPTION</div>
+    <div class="title-sub">Data Encryption Standard · FIPS 46-3</div>
+    <div class="badge">⬡ 64-BIT BLOCK CIPHER · 56-BIT KEY · 16 ROUNDS ⬡</div>
+    <div class="header-line"></div>
+  </header>
+
+  <!-- INPUT PANEL -->
+  <div class="panel" id="input-panel">
+    <div class="panel-header">
+      <span class="panel-num">SYS</span>
+      <span class="panel-title">Nhập Tham Số</span>
+    </div>
+    <div class="panel-body">
+
+      <!-- KEY -->
+      <div class="input-group">
+        <label class="input-label">⬡ KHÓA K — 64-bit (16 ký tự Hex)</label>
+        <div class="input-wrap">
+          <div class="input-prefix">K →</div>
+          <input type="text" id="keyInput" maxlength="16" placeholder="133457799BBCDFF1" spellcheck="false">
+        </div>
+        <div class="input-hint" id="keyHint">Nhập đúng 16 ký tự Hex (0-9, A-F)</div>
+      </div>
+
+      <!-- MESSAGE -->
+      <div class="input-group">
+        <label class="input-label">⬡ BẢN TIN M — 64-bit (16 ký tự Hex)</label>
+        <div class="input-wrap">
+          <div class="input-prefix">M →</div>
+          <input type="text" id="msgInput" maxlength="16" placeholder="0123456789ABCDEF" spellcheck="false">
+        </div>
+        <div class="input-hint" id="msgHint">Nhập đúng 16 ký tự Hex (0-9, A-F)</div>
+      </div>
+
+      <!-- ROUNDS -->
+      <div class="input-group">
+        <label class="input-label">⬡ SỐ VÒNG MÃ HÓA (1 – 16)</label>
+        <div class="input-wrap">
+          <div class="input-prefix">R →</div>
+          <input type="number" id="roundsInput" min="1" max="16" value="16" placeholder="16">
+        </div>
+        <div class="input-hint">Mặc định: 16 vòng đầy đủ</div>
+      </div>
+
+      <button class="btn-encrypt" id="encryptBtn" onclick="runDES()">
+        <span class="btn-icon">◈</span>
+        <span>Bắt Đầu Mã Hóa</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- OUTPUT SECTION -->
+  <div id="output-section">
+
+    <!-- SUBKEYS PANEL -->
+    <div class="panel" id="subkeys-panel">
+      <div class="panel-header">
+        <span class="panel-num">K-GEN</span>
+        <span class="panel-title">16 Khóa Con Đã Sinh</span>
+      </div>
+      <div class="panel-body">
+        <div class="subkeys-grid" id="subkeys-display"></div>
+      </div>
+    </div>
+
+    <!-- TERMINAL LOG -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-num">LOG</span>
+        <span class="panel-title">Quá Trình Mã Hóa</span>
+      </div>
+      <div class="terminal" id="terminal"></div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="result-card" id="result-card">
+      <div class="result-label">▸ Bản Mã Cuối Cùng (Ciphertext)</div>
+      <div class="result-value" id="result-value">—</div>
+      <div class="result-meta" id="result-meta"></div>
+      <br>
+      <button class="btn-copy" onclick="copyResult()">[ COPY KẾT QUẢ ]</button>
+      <br>
+      <span class="reset-link" onclick="resetForm()">↩ Mã hóa lại</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div class="sb-item"><div class="sb-dot"></div><span>DES ENGINE READY</span></div>
+  <div class="sb-item">FIPS 46-3</div>
+  <div class="sb-item" id="sb-status">AWAITING INPUT</div>
+</div>
+
+<script>
+// ==================== BẢNG HOÁN VỊ DES ====================
+const IP = [
+  58,50,42,34,26,18,10,2,
+  60,52,44,36,28,20,12,4,
+  62,54,46,38,30,22,14,6,
+  64,56,48,40,32,24,16,8,
+  57,49,41,33,25,17,9,1,
+  59,51,43,35,27,19,11,3,
+  61,53,45,37,29,21,13,5,
+  63,55,47,39,31,23,15,7
+];
+
+const FP = [
+  40,8,48,16,56,24,64,32,
+  39,7,47,15,55,23,63,31,
+  38,6,46,14,54,22,62,30,
+  37,5,45,13,53,21,61,29,
+  36,4,44,12,52,20,60,28,
+  35,3,43,11,51,19,59,27,
+  34,2,42,10,50,18,58,26,
+  33,1,41,9,49,17,57,25
+];
+
+const PC1 = [
+  57,49,41,33,25,17,9,
+  1,58,50,42,34,26,18,
+  10,2,59,51,43,35,27,
+  19,11,3,60,52,44,36,
+  63,55,47,39,31,23,15,
+  7,62,54,46,38,30,22,
+  14,6,61,53,45,37,29,
+  21,13,5,28,20,12,4
+];
+
+const PC2 = [
+  14,17,11,24,1,5,
+  3,28,15,6,21,10,
+  23,19,12,4,26,8,
+  16,7,27,20,13,2,
+  41,52,31,37,47,55,
+  30,40,51,45,33,48,
+  44,49,39,56,34,53,
+  46,42,50,36,29,32
+];
+
+const SHIFT_TABLE = [1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1];
+
+const E = [
+  32,1,2,3,4,5,
+  4,5,6,7,8,9,
+  8,9,10,11,12,13,
+  12,13,14,15,16,17,
+  16,17,18,19,20,21,
+  20,21,22,23,24,25,
+  24,25,26,27,28,29,
+  28,29,30,31,32,1
+];
+
+const S_BOX = [
+  [[14,4,13,1,2,15,11,8,3,10,6,12,5,9,0,7],[0,15,7,4,14,2,13,1,10,6,12,11,9,5,3,8],[4,1,14,8,13,6,2,11,15,12,9,7,3,10,5,0],[15,12,8,2,4,9,1,7,5,11,3,14,10,0,6,13]],
+  [[15,1,8,14,6,11,3,4,9,7,2,13,12,0,5,10],[3,13,4,7,15,2,8,14,12,0,1,10,6,9,11,5],[0,14,7,11,10,4,13,1,5,8,12,6,9,3,2,15],[13,8,10,1,3,15,4,2,11,6,7,12,0,5,14,9]],
+  [[10,0,9,14,6,3,15,5,1,13,12,7,11,4,2,8],[13,7,0,9,3,4,6,10,2,8,5,14,12,11,15,1],[13,6,4,9,8,15,3,0,11,1,2,12,5,10,14,7],[1,10,13,0,6,9,8,7,4,15,14,3,11,5,2,12]],
+  [[7,13,14,3,0,6,9,10,1,2,8,5,11,12,4,15],[13,8,11,5,6,15,0,3,4,7,2,12,1,10,14,9],[10,6,9,0,12,11,7,13,15,1,3,14,5,2,8,4],[3,15,0,6,10,1,13,8,9,4,5,11,12,7,2,14]],
+  [[2,12,4,1,7,10,11,6,8,5,3,15,13,0,14,9],[14,11,2,12,4,7,13,1,5,0,15,10,3,9,8,6],[4,2,1,11,10,13,7,8,15,9,12,5,6,3,0,14],[11,8,12,7,1,14,2,13,6,15,0,9,10,4,5,3]],
+  [[12,1,10,15,9,2,6,8,0,13,3,4,14,7,5,11],[10,15,4,2,7,12,9,5,6,1,13,14,0,11,3,8],[9,14,15,5,2,8,12,3,7,0,4,10,1,13,11,6],[4,3,2,12,9,5,15,10,11,14,1,7,6,0,8,13]],
+  [[4,11,2,14,15,0,8,13,3,12,9,7,5,10,6,1],[13,0,11,7,4,9,1,10,14,3,5,12,2,15,8,6],[1,4,11,13,12,3,7,14,10,15,6,8,0,5,9,2],[6,11,13,8,1,4,10,7,9,5,0,15,14,2,3,12]],
+  [[13,2,8,4,6,15,11,1,10,9,3,14,5,0,12,7],[1,15,13,8,10,3,7,4,12,5,6,11,0,14,9,2],[7,11,4,1,9,12,14,2,0,6,10,13,15,3,5,8],[2,1,14,7,4,10,8,13,15,12,9,0,3,5,6,11]]
+];
+
+const P = [
+  16,7,20,21,
+  29,12,28,17,
+  1,15,23,26,
+  5,18,31,10,
+  2,8,24,14,
+  32,27,3,9,
+  19,13,30,6,
+  22,11,4,25
+];
+
+// ==================== CÁC HÀM TIỆN ÍCH ====================
+function hex2bin(s) {
+  try {
+    return parseInt(s, 16).toString(2).padStart(s.length * 4, '0');
+  } catch(e) { return null; }
+}
+
+function bin2hex(s) {
+  return parseInt(s, 2).toString(16).toUpperCase().padStart(s.length / 4, '0');
+}
+
+function permute(block, table) {
+  return table.map(i => block[i - 1]).join('');
+}
+
+function shiftLeft(block, shifts) {
+  return block.slice(shifts) + block.slice(0, shifts);
+}
+
+function xorBits(b1, b2) {
+  return b1.split('').map((c, i) => c !== b2[i] ? '1' : '0').join('');
+}
+
+// ==================== TẠO KHÓA ====================
+function generateKeys(keyHex) {
+  const keyBin = hex2bin(keyHex);
+  if (!keyBin) return null;
+
+  const key56 = permute(keyBin, PC1);
+  let C = key56.slice(0, 28);
+  let D = key56.slice(28);
+  const subkeys = [];
+
+  for (let i = 0; i < 16; i++) {
+    C = shiftLeft(C, SHIFT_TABLE[i]);
+    D = shiftLeft(D, SHIFT_TABLE[i]);
+    subkeys.push(permute(C + D, PC2));
+  }
+
+  return { subkeys, keyBin };
+}
+
+// ==================== MÃ HÓA ====================
+function desEncrypt(msgHex, subkeys, numRounds) {
+  const msgBin = hex2bin(msgHex);
+  if (!msgBin) return null;
+
+  const msgIP = permute(msgBin, IP);
+  let L = msgIP.slice(0, 32);
+  let R = msgIP.slice(32);
+
+  const rounds = [];
+  rounds.push({ step: 'ip', L0: bin2hex(L), R0: bin2hex(R) });
+
+  for (let i = 0; i < numRounds; i++) {
+    const Lprev = L;
+    const Rprev = R;
+
+    const ER = permute(Rprev, E);
+    const xorRes = xorBits(ER, subkeys[i]);
+
+    let sRes = '';
+    for (let j = 0; j < 8; j++) {
+      const block = xorRes.slice(j * 6, (j + 1) * 6);
+      const row = parseInt(block[0] + block[5], 2);
+      const col = parseInt(block.slice(1, 5), 2);
+      const val = S_BOX[j][row][col];
+      sRes += val.toString(2).padStart(4, '0');
+    }
+
+    const fRes = permute(sRes, P);
+    R = xorBits(Lprev, fRes);
+    L = Rprev;
+
+    rounds.push({
+      step: 'round',
+      round: i + 1,
+      L: bin2hex(L),
+      R: bin2hex(R),
+      K: bin2hex(subkeys[i])
+    });
+  }
+
+  const preOutput = R + L;
+  const cipherBin = permute(preOutput, FP);
+  return { cipher: bin2hex(cipherBin), rounds };
+}
+
+// ==================== VALIDATION ====================
+const HEX_RE = /^[0-9A-Fa-f]+$/;
+
+function validateHex(val, len) {
+  if (!val) return 'empty';
+  if (!HEX_RE.test(val)) return 'invalid';
+  if (val.length !== len) return 'length';
+  return 'ok';
+}
+
+document.getElementById('keyInput').addEventListener('input', function() {
+  const v = this.value.toUpperCase().replace(/[^0-9A-F]/g,'');
+  this.value = v;
+  const hint = document.getElementById('keyHint');
+  if (v.length === 16) { hint.textContent = '✓ Khóa hợp lệ'; hint.className = 'input-hint ok'; }
+  else { hint.textContent = `${v.length}/16 ký tự`; hint.className = 'input-hint'; }
+});
+
+document.getElementById('msgInput').addEventListener('input', function() {
+  const v = this.value.toUpperCase().replace(/[^0-9A-F]/g,'');
+  this.value = v;
+  const hint = document.getElementById('msgHint');
+  if (v.length === 16) { hint.textContent = '✓ Bản tin hợp lệ'; hint.className = 'input-hint ok'; }
+  else { hint.textContent = `${v.length}/16 ký tự`; hint.className = 'input-hint'; }
+});
+
+// ==================== MAIN ====================
+function runDES() {
+  const keyHex   = document.getElementById('keyInput').value.trim().toUpperCase();
+  const msgHex   = document.getElementById('msgInput').value.trim().toUpperCase();
+  let   numRounds = parseInt(document.getElementById('roundsInput').value) || 16;
+
+  // Validate
+  if (validateHex(keyHex, 16) !== 'ok') {
+    alert('Lỗi: Khóa K phải đúng 16 ký tự Hex (64-bit).');
+    return;
+  }
+  if (validateHex(msgHex, 16) !== 'ok') {
+    alert('Lỗi: Bản tin M phải đúng 16 ký tự Hex (64-bit).');
+    return;
+  }
+  if (numRounds < 1 || numRounds > 16 || isNaN(numRounds)) numRounds = 16;
+
+  document.getElementById('sb-status').textContent = 'PROCESSING...';
+
+  // Generate keys
+  const { subkeys, keyBin } = generateKeys(keyHex);
+
+  // Render subkeys
+  const skGrid = document.getElementById('subkeys-display');
+  skGrid.innerHTML = '';
+  subkeys.forEach((sk, i) => {
+    const div = document.createElement('div');
+    div.className = 'sk-item';
+    div.innerHTML = `<span class="sk-label">K${String(i+1).padStart(2,'0')}</span><span class="sk-val">${bin2hex(sk)}</span>`;
+    skGrid.appendChild(div);
+  });
+
+  // Encrypt
+  const { cipher, rounds } = desEncrypt(msgHex, subkeys, numRounds);
+
+  // Render terminal
+  const term = document.getElementById('terminal');
+  term.innerHTML = '';
+
+  const lines = [];
+  lines.push({ cls: 't-sep',   text: '═'.repeat(60) });
+  lines.push({ cls: 't-head',  text: '  CHƯƠNG TRÌNH MÃ HÓA DES' });
+  lines.push({ cls: 't-sep',   text: '═'.repeat(60) });
+  lines.push({ cls: 't-label', text: '' });
+  lines.push({ cls: 't-label', text: `[+] Khóa K (Hex):    ${keyHex}` });
+  lines.push({ cls: 't-key',   text: `[+] Khóa K (Binary): ${keyBin}` });
+  lines.push({ cls: 't-label', text: '' });
+  lines.push({ cls: 't-sep',   text: '─'.repeat(50) });
+  lines.push({ cls: 't-head',  text: 'KẾT QUẢ SINH 16 KHÓA CON:' });
+  lines.push({ cls: 't-sep',   text: '─'.repeat(50) });
+  subkeys.forEach((sk, i) => {
+    lines.push({ cls: 't-subkey', text: `  Khóa K${String(i+1).padEnd(2)} = ${bin2hex(sk)}` });
+  });
+  lines.push({ cls: 't-label', text: '' });
+  lines.push({ cls: 't-sep',   text: '─'.repeat(50) });
+  lines.push({ cls: 't-accent', text: `--- Quá trình mã hóa bản tin M với ${numRounds} vòng ---` });
+  lines.push({ cls: 't-sep',   text: '─'.repeat(50) });
+  rounds.forEach(r => {
+    if (r.step === 'ip') {
+      lines.push({ cls: 't-label', text: `Sau Initial Permutation (IP):` });
+      lines.push({ cls: 't-label', text: `  L0 = ${r.L0}   R0 = ${r.R0}` });
+      lines.push({ cls: 't-label', text: '' });
+    } else {
+      lines.push({ cls: 't-round', text: `Vòng ${String(r.round).padEnd(2)}: L${r.round} = ${r.L} | R${r.round} = ${r.R} | K${r.round} = ${r.K}` });
+    }
+  });
+  lines.push({ cls: 't-label', text: '' });
+  lines.push({ cls: 't-sep',   text: '*'.repeat(50) });
+  lines.push({ cls: 't-accent', text: `BẢN MÃ CUỐI CÙNG (Sau ${numRounds} vòng và Inverse FP):` });
+  lines.push({ cls: 't-result', text: ` => ${cipher}` });
+  lines.push({ cls: 't-sep',   text: '*'.repeat(50) });
+
+  // Animate lines in
+  lines.forEach((l, idx) => {
+    const span = document.createElement('span');
+    span.className = `t-line ${l.cls}`;
+    span.style.animationDelay = `${idx * 18}ms`;
+    span.textContent = l.text || ' ';
+    term.appendChild(span);
+    term.appendChild(document.createTextNode('\n'));
+  });
+
+  // Result card
+  document.getElementById('result-value').textContent = cipher;
+  document.getElementById('result-meta').textContent =
+    `KEY: ${keyHex}  ·  MSG: ${msgHex}  ·  ROUNDS: ${numRounds}`;
+
+  // Show output
+  document.getElementById('output-section').style.display = 'block';
+  document.getElementById('sb-status').textContent = `CIPHER: ${cipher}`;
+
+  // Scroll to result after delay
+  setTimeout(() => {
+    document.getElementById('output-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 200);
+}
+
+function copyResult() {
+  const val = document.getElementById('result-value').textContent;
+  navigator.clipboard.writeText(val).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    btn.textContent = '[ ✓ ĐÃ COPY ]';
+    setTimeout(() => btn.textContent = '[ COPY KẾT QUẢ ]', 2000);
+  });
+}
+
+function resetForm() {
+  document.getElementById('output-section').style.display = 'none';
+  document.getElementById('sb-status').textContent = 'AWAITING INPUT';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Allow Enter key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('output-section').style.display === 'none') runDES();
+});
+</script>
+</body>
+</html>
